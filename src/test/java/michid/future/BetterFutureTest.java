@@ -2,6 +2,7 @@ package michid.future;
 
 import static java.time.Duration.ZERO;
 import static java.time.Duration.ofMillis;
+import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,9 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
@@ -98,8 +102,8 @@ public class BetterFutureTest {
 
     @Test
     public void recover() throws ExecutionException, InterruptedException {
-        var future =
-            BetterFuture.failed(new Exception("fail"))
+        BetterFuture<String> future =
+            BetterFuture.<String>failed(new Exception("fail"))
                 .recover(Throwable::getMessage);
         assertEquals(Optional.of("fail"), future.get(ZERO));
     }
@@ -130,7 +134,7 @@ public class BetterFutureTest {
 
     @Test
     public void andThenWithSecondFailing() {
-        var future =
+        BetterFuture<String> future =
             BetterFuture.future(() -> "a")
                 .andThen(__ ->
             BetterFuture.future(() -> { throw new Exception("fail"); }));
@@ -140,8 +144,8 @@ public class BetterFutureTest {
 
     @Test
     public void recoverWith() throws ExecutionException, InterruptedException {
-        var future =
-            BetterFuture.failed(new Exception("fail"))
+        BetterFuture<String> future =
+            BetterFuture.<String>failed(new Exception("fail"))
                 .recoverWith(__ ->
             BetterFuture.succeeded("success"));
 
@@ -182,32 +186,32 @@ public class BetterFutureTest {
 
     @Test
     public void reduce() throws ExecutionException, InterruptedException {
-        var values = List.of("a", "b", "c");
+        List<String> values = asList("a", "b", "c");
         CountDownLatch allRunning = new CountDownLatch(values.size());
 
-        var futures =
+        Stream<BetterFuture<String>> futures =
             values.stream()
                 .map(s -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, s)));
 
-        var reduced = BetterFuture.reduce(futures)
-            .map(Stream::toList);
+        BetterFuture<List<String>> reduced = BetterFuture.reduce(futures)
+            .map(this::toList);
         assertEquals(Optional.of(values), reduced.get(ofMillis(10)));
     }
 
     @Test
     public void reduceWithFailure() {
-        var values = List.of("a", "b", "c");
+        List<String> values = asList("a", "b", "c");
         CountDownLatch allRunning = new CountDownLatch(values.size() + 1);
 
-        var succeedingFutures =
+        Stream<BetterFuture<String>> succeedingFutures =
             values.stream()
                 .map(s -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, s)));
 
-        var failingFuture = BetterFuture.future(() -> waitForLatchAndFail(allRunning, new Exception("fail")));
+        BetterFuture<String> failingFuture = BetterFuture.future(() -> waitForLatchAndFail(allRunning, new Exception("fail")));
 
-        var futures = Stream.concat(succeedingFutures, Stream.of(failingFuture));
+        Stream<BetterFuture<String>> futures = Stream.concat(succeedingFutures, Stream.of(failingFuture));
 
-        var reduced = BetterFuture.reduce(futures);
+        BetterFuture<Stream<String>> reduced = BetterFuture.reduce(futures);
 
         assertThrows(ExecutionException.class, () -> reduced.get(ofMillis(100)));
     }
@@ -298,7 +302,7 @@ public class BetterFutureTest {
 
     @Test
     public void succeed() throws ExecutionException, InterruptedException {
-        var future = new BetterFuture<String>();
+        BetterFuture<String> future = new BetterFuture<>();
 
         assertFalse(future.isCompleted());
         assertEquals(Optional.empty(), future.get(ofMillis(100)));
@@ -317,7 +321,7 @@ public class BetterFutureTest {
 
     @Test
     public void fail() throws ExecutionException, InterruptedException {
-        var future = new BetterFuture<String>();
+        BetterFuture<String> future = new BetterFuture<>();
 
         assertFalse(future.isCompleted());
         assertEquals(Optional.empty(), future.get(ofMillis(100)));
@@ -333,18 +337,18 @@ public class BetterFutureTest {
 
     @Test
     public void firstOfNone() {
-        var result = BetterFuture.first(Stream.empty());
+        BetterFuture<String> result = BetterFuture.first(Stream.empty());
 
         assertFalse(result.isCompleted());
     }
 
     @Test
     public void firstOfMany() throws ExecutionException, InterruptedException {
-        var future1 = new BetterFuture<String>();
-        var future2 = new BetterFuture<String>();
-        var future3 = new BetterFuture<String>();
+        BetterFuture<String> future1 = new BetterFuture<>();
+        BetterFuture<String> future2 = new BetterFuture<>();
+        BetterFuture<String> future3 = new BetterFuture<>();
 
-        var result = BetterFuture.first(Stream.of(future1, future2, future3));
+        BetterFuture<String> result = BetterFuture.first(Stream.of(future1, future2, future3));
 
         assertEquals(Optional.empty(), result.get(ofMillis(100)));
         assertFalse(result.isCompleted());
@@ -357,11 +361,11 @@ public class BetterFutureTest {
 
     @Test
     public void firstOfManyFailing() throws ExecutionException, InterruptedException {
-        var future1 = new BetterFuture<String>();
-        var future2 = new BetterFuture<String>();
-        var future3 = new BetterFuture<String>();
+        BetterFuture<String> future1 = new BetterFuture<>();
+        BetterFuture<String> future2 = new BetterFuture<>();
+        BetterFuture<String> future3 = new BetterFuture<>();
 
-        var result = BetterFuture.first(Stream.of(future1, future2, future3));
+        BetterFuture<String> result = BetterFuture.first(Stream.of(future1, future2, future3));
 
         assertEquals(Optional.empty(), result.get(ofMillis(100)));
         assertFalse(result.isCompleted());
@@ -374,33 +378,33 @@ public class BetterFutureTest {
 
     @Test
     public void collectEmptyStream() {
-        var futures = Stream.<BetterFuture<String>>empty();
+        Stream<BetterFuture<String>> futures = Stream.empty();
 
-        var collected = BetterFuture.collect(futures);
+        Queue<BetterFuture<String>> collected = BetterFuture.collect(futures);
 
         assertTrue(collected.isEmpty());
     }
 
     @Test
     public void collect() throws ExecutionException, InterruptedException {
-        var f1 = new BetterFuture<String>();
-        var f2 = new BetterFuture<String>();
-        var f3 = new BetterFuture<String>();
-        var futures = Stream.of(f1, f2, f3);
+        BetterFuture<String> f1 = new BetterFuture<>();
+        BetterFuture<String> f2 = new BetterFuture<>();
+        BetterFuture<String> f3 = new BetterFuture<>();
+        Stream<BetterFuture<String>> futures = Stream.of(f1, f2, f3);
 
-        var collected = BetterFuture.collect(futures);
+        BlockingQueue<BetterFuture<String>> collected = BetterFuture.collect(futures);
 
         assertNull(collected.poll(10, MILLISECONDS));
 
         f2.succeed("f2");
         f1.succeed("f1");
 
-        var r2 = collected.poll(10, MILLISECONDS);
+        BetterFuture<String> r2 = collected.poll(10, MILLISECONDS);
         assertNotNull(r2);
         assertTrue(r2.isCompleted());
         assertEquals("f2", r2.get());
 
-        var r1 = collected.poll(10, MILLISECONDS);
+        BetterFuture<String> r1 = collected.poll(10, MILLISECONDS);
         assertNotNull(r1);
         assertTrue(r1.isCompleted());
         assertEquals("f1", r1.get());
@@ -409,7 +413,7 @@ public class BetterFutureTest {
 
         f3.succeed("f3");
 
-        var r3 = collected.poll(10, MILLISECONDS);
+        BetterFuture<String> r3 = collected.poll(10, MILLISECONDS);
         assertNotNull(r3);
         assertTrue(r3.isCompleted());
         assertEquals("f3", r3.get());
@@ -419,17 +423,17 @@ public class BetterFutureTest {
 
     @Test
     public void collectAsync() throws ExecutionException, InterruptedException {
-        var f1 = new BetterFuture<String>();
-        var f2 = new BetterFuture<String>();
-        var f3 = new BetterFuture<String>();
-        var futures = Stream.of(f1, f2, f3);
+        BetterFuture<String> f1 = new BetterFuture<>();
+        BetterFuture<String> f2 = new BetterFuture<>();
+        BetterFuture<String> f3 = new BetterFuture<>();
+        Stream<BetterFuture<String>> futures = Stream.of(f1, f2, f3);
 
-        var collected = BetterFuture.collect(futures);
+        BlockingQueue<BetterFuture<String>> collected = BetterFuture.collect(futures);
 
-        var futureList = BetterFuture.future(() ->
+        BetterFuture<List<String>> futureList = BetterFuture.future(() ->
                 Stream.of(collected.take(), collected.take(), collected.take()))
             .andThen(BetterFuture::reduce)
-            .map(Stream::toList);
+            .map(this::toList);
 
         assertFalse(futureList.isCompleted());
 
@@ -441,8 +445,12 @@ public class BetterFutureTest {
 
         f3.succeed("f3");
 
-        assertEquals(Optional.of(List.of("f2", "f1", "f3")), futureList.get(Duration.ofMillis(10)));
+        assertEquals(Optional.of(asList("f2", "f1", "f3")), futureList.get(Duration.ofMillis(10)));
         assertTrue(futureList.isCompleted());
+    }
+
+    private List<String> toList(Stream<String> strings) {
+        return strings.collect(Collectors.toList());
     }
 
     private String waitForLatchAndReturn(CountDownLatch latch, String result) throws InterruptedException {

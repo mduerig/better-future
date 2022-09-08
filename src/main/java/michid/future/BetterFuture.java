@@ -1,7 +1,6 @@
 package michid.future;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static java.util.concurrent.CompletableFuture.failedFuture;
 import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.stream.Stream.concat;
 
@@ -65,7 +64,7 @@ public class BetterFuture<T> {
      * @return  a new instance
      */
     public static <T> BetterFuture<T> failed(Throwable failure) {
-        return new BetterFuture<>(failedFuture(failure));
+        return new BetterFuture<T>().fail(failure);
     }
 
     /**
@@ -78,7 +77,7 @@ public class BetterFuture<T> {
      * @return  a new instance
      */
     public static <T> BetterFuture<T> future(Callable<T> callable) {
-        var delegate = new CompletableFuture<T>();
+        CompletableFuture<T> delegate = new CompletableFuture<>();
 
         runAsync(() -> {
             try {
@@ -220,8 +219,12 @@ public class BetterFuture<T> {
      * @return  new {@code BetterFuture} instance
      */
     public BetterFuture<T> recoverWith(Function<Throwable, BetterFuture<T>> fn) {
-        return new BetterFuture<>(
-            delegate.exceptionallyCompose(throwable -> fn.apply(throwable).delegate));
+        BetterFuture<T> result = new BetterFuture<>();
+        this.onFail(throwable ->
+            fn.apply(throwable)
+                .onSuccess(result::succeed)
+                .onFail(result::fail));
+        return result;
     }
 
     /**
@@ -327,7 +330,7 @@ public class BetterFuture<T> {
      * @return  a blocking queue containing the futures in the order of their completion.
      */
     public static <T> BlockingQueue<BetterFuture<T>> collect(Stream<BetterFuture<T>> futures) {
-        var queue = new LinkedBlockingQueue<BetterFuture<T>>();
+        LinkedBlockingQueue<BetterFuture<T>> queue = new LinkedBlockingQueue<>();
         futures.forEach(future ->
             future.onComplete(
                 queue::add));
@@ -364,7 +367,7 @@ public class BetterFuture<T> {
      * @return  a future that completes when the first future completes
      */
     public static <T> BetterFuture<T> first(Stream<BetterFuture<T>> futures) {
-        var delegate = new CompletableFuture<T>();
+        CompletableFuture<T> delegate = new CompletableFuture<>();
 
         futures.forEach(future ->
             future
