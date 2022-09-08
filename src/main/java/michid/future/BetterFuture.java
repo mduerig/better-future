@@ -220,8 +220,12 @@ public class BetterFuture<T> {
      * @return  new {@code BetterFuture} instance
      */
     public BetterFuture<T> recoverWith(Function<Throwable, BetterFuture<T>> fn) {
-        return new BetterFuture<>(
-            delegate.exceptionallyCompose(throwable -> fn.apply(throwable).delegate));
+        var result = new BetterFuture<T>();
+        this.onFail(throwable ->
+            fn.apply(throwable)
+                .onSuccess(result::succeed)
+                .onFail(result::fail));
+        return result;
     }
 
     /**

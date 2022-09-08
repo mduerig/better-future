@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
@@ -190,7 +191,7 @@ public class BetterFutureTest {
                 .map(s -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, s)));
 
         var reduced = BetterFuture.reduce(futures)
-            .map(Stream::toList);
+            .map(this::toList);
         assertEquals(Optional.of(values), reduced.get(ofMillis(10)));
     }
 
@@ -429,7 +430,7 @@ public class BetterFutureTest {
         var futureList = BetterFuture.future(() ->
                 Stream.of(collected.take(), collected.take(), collected.take()))
             .andThen(BetterFuture::reduce)
-            .map(Stream::toList);
+            .map(this::toList);
 
         assertFalse(futureList.isCompleted());
 
@@ -443,6 +444,10 @@ public class BetterFutureTest {
 
         assertEquals(Optional.of(List.of("f2", "f1", "f3")), futureList.get(Duration.ofMillis(10)));
         assertTrue(futureList.isCompleted());
+    }
+
+    private List<String> toList(Stream<String> strings) {
+        return strings.collect(Collectors.toList());
     }
 
     private String waitForLatchAndReturn(CountDownLatch latch, String result) throws InterruptedException {
