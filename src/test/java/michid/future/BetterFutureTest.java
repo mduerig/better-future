@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,6 +87,32 @@ public class BetterFutureTest {
         assertFalse(future.isFailed());
         assertTrue(future.isSucceeded());
         assertTrue(future.isCompleted());
+    }
+
+    @Test
+    public void toCompletableFutureSuccess() throws ExecutionException, InterruptedException {
+        BetterFuture<String> future = new BetterFuture<>();
+        CompletableFuture<String> completableFuture = future.toCompletableFuture();
+
+        assertFalse(completableFuture.isDone());
+
+        future.succeed("success");
+        assertTrue(completableFuture.isDone());
+        assertFalse(completableFuture.isCompletedExceptionally());
+        assertEquals("success", completableFuture.get());
+    }
+
+    @Test
+    public void toCompletableFutureFailure() {
+        BetterFuture<String> future = new BetterFuture<>();
+        CompletableFuture<String> completableFuture = future.toCompletableFuture();
+
+        assertFalse(completableFuture.isDone());
+
+        future.fail(new RuntimeException("fail"));
+        assertTrue(completableFuture.isDone());
+        assertTrue(completableFuture.isCompletedExceptionally());
+        assertThrows(ExecutionException.class, completableFuture::get);
     }
 
     @Test
