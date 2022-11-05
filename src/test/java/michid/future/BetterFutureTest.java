@@ -86,6 +86,32 @@ public class BetterFutureTest {
     }
 
     @Test
+    public void toCompletableFutureSuccess() throws ExecutionException, InterruptedException {
+        var future = new BetterFuture<String>();
+        var completableFuture = future.toCompletableFuture();
+
+        assertFalse(completableFuture.isDone());
+
+        future.succeed("success");
+        assertTrue(completableFuture.isDone());
+        assertFalse(completableFuture.isCompletedExceptionally());
+        assertEquals("success", completableFuture.get());
+    }
+
+    @Test
+    public void toCompletableFutureFailure() {
+        var future = new BetterFuture<String>();
+        var completableFuture = future.toCompletableFuture();
+
+        assertFalse(completableFuture.isDone());
+
+        future.fail(new RuntimeException("fail"));
+        assertTrue(completableFuture.isDone());
+        assertTrue(completableFuture.isCompletedExceptionally());
+        assertThrows(ExecutionException.class, completableFuture::get);
+    }
+
+    @Test
     public void mapSucceeded() throws ExecutionException, InterruptedException {
         BetterFuture<String> future = BetterFuture.succeeded(42).map(Object::toString);
         assertEquals(Optional.of("42"), future.get(ZERO));

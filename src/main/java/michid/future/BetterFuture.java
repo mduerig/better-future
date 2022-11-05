@@ -92,6 +92,18 @@ public class BetterFuture<T> {
     }
 
     /**
+     * @return  a {@code CompletableFuture} that completes either successfully or with
+     *          a failure if after this future completed either successfully or with a
+     *          failure.
+     */
+    public CompletableFuture<T> toCompletableFuture() {
+        var future = new CompletableFuture<T>();
+        onFail(future::completeExceptionally);
+        onSuccess(future::complete);
+        return future;
+    }
+
+    /**
      * @return  {@code true} if this instance completed (either successfully of with a failure).
      */
     public boolean isCompleted() {
