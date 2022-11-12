@@ -43,4 +43,25 @@ public class ParallelApiCalls {
             List.of(review0, review1)));
     }
 
+    @Test
+    void runWithBiFunction() {
+        future(
+            wineApi::getWines)
+        .map(
+            Stream::toList)
+        .andThen(
+            this::getTwoReviewsWithBiFunction)
+        .onSuccess(
+            out::println);
+    }
+
+    private BetterFuture<List<Review>> getTwoReviewsWithBiFunction(List<Wine> wines) {
+        return future(() ->
+            wineApi.getReview(wines.get(0)))
+        .andAlso(future(() ->
+            wineApi.getReview(wines.get(1))),
+        (review1, review0) ->
+            List.of(review0, review1));
+    }
+
 }
