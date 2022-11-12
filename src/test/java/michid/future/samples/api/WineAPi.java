@@ -14,7 +14,7 @@ public interface WineAPi {
         Optional<Review> review
     )
     {
-        enum Color {red, white, pink}
+        enum Color {RED, WHITE, PINK}
 
         public Wine withReview(Review review) {
             return new Wine(name, grapes, color, vintage, region, country, Optional.of(review));
@@ -35,7 +35,7 @@ public interface WineAPi {
         Stars rating
     )
     {
-        enum Stars { one, two, three, four, five }
+        public enum Stars {ONE, TWO, THREE, FOUR, FIVE}
 
         @Override
         public String toString() {

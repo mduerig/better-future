@@ -3,6 +3,7 @@ package michid.future;
 import static java.time.Duration.ZERO;
 import static java.time.Duration.ofMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Stream.concat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -247,6 +248,60 @@ public class BetterFutureTest {
     }
 
     @Test
+    public void foldToStream() throws ExecutionException, InterruptedException {
+        var values = List.of("a", "b", "c", "d", "e");
+        CountDownLatch allRunning = new CountDownLatch(values.size());
+
+        var futures =
+            values.stream()
+                .map(s -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, s)));
+
+        var folded = BetterFuture.foldLeft(
+                futures,
+                BetterFuture.succeeded(Stream.empty()),
+                (stream, string) -> concat(stream, Stream.of(string)))
+            .map(Stream::toList);
+        assertEquals(Optional.of(values), folded.get(ofMillis(10)));
+    }
+
+    @Test
+    public void foldToSum() throws ExecutionException, InterruptedException {
+        var values = List.of(1, 2, 3, 4, 5, 6);
+        CountDownLatch allRunning = new CountDownLatch(values.size());
+
+        var futures =
+            values.stream()
+                .map(k -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, k)));
+
+        var folded = BetterFuture.foldLeft(
+                futures,
+                BetterFuture.succeeded(0),
+                Integer::sum);
+        assertEquals(values.stream().reduce(Integer::sum), folded.get(ofMillis(10)));
+    }
+
+    @Test
+    public void foldToWithException() {
+        var values = List.of(1, 2, 3, 4, 5, 6);
+        CountDownLatch allRunning = new CountDownLatch(values.size());
+
+        var futures =
+            values.stream()
+                .map(k -> BetterFuture.future(() -> waitForLatchAndReturn(allRunning, k)));
+
+        futures = Stream.concat(futures, Stream.of(BetterFuture.failed(new RuntimeException("failed"))));
+
+        var folded = BetterFuture.foldLeft(
+                futures,
+                BetterFuture.succeeded(0),
+                Integer::sum);
+
+        var ex = assertThrows(ExecutionException.class, () -> folded.get(ofMillis(10)));
+        assertEquals("failed", ex.getCause().getMessage());
+        assertTrue(folded.isFailed());
+    }
+
+    @Test
     public void reduceWithFailure() {
         var values = List.of("a", "b", "c");
         CountDownLatch allRunning = new CountDownLatch(values.size() + 1);
@@ -257,7 +312,7 @@ public class BetterFutureTest {
 
         var failingFuture = BetterFuture.future(() -> waitForLatchAndFail(allRunning, new Exception("fail")));
 
-        var futures = Stream.concat(succeedingFutures, Stream.of(failingFuture));
+        var futures = concat(succeedingFutures, Stream.of(failingFuture));
 
         var reduced = BetterFuture.reduce(futures);
 
@@ -497,7 +552,7 @@ public class BetterFutureTest {
         assertTrue(futureList.isCompleted());
     }
 
-    private String waitForLatchAndReturn(CountDownLatch latch, String result) throws InterruptedException {
+    private <T> T waitForLatchAndReturn(CountDownLatch latch, T result) throws InterruptedException {
         latch.countDown();
         latch.await();
         return result;

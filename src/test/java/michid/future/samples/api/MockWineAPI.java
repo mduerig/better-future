@@ -1,7 +1,7 @@
 package michid.future.samples.api;
 
-import static michid.future.samples.api.WineAPi.Wine.Color.red;
-import static michid.future.samples.api.WineAPi.Wine.Color.white;
+import static michid.future.samples.api.WineAPi.Wine.Color.RED;
+import static michid.future.samples.api.WineAPi.Wine.Color.WHITE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,56 +18,56 @@ public class MockWineAPI implements WineAPi {
     private static final Wine[] WINES = {
         new Wine(
             "Meursault Premier Cru",
-            "Chardonnay", white, 2005,
+            "Chardonnay", WHITE, 2005,
             "Bourgogne", "France",
             Optional.empty()),
         new Wine(
             "Richebourg Grand Cru",
-            "Pinot Nero", red, 1998,
+            "Pinot Nero", RED, 1998,
             "Bourgogne",
             "France",
             Optional.of(new Review(
                 "Absolutely fantastic, this is not an every day wine.",
-                Stars.five
+                Stars.FIVE
             ))),
         new Wine(
             "Chateau Mouton Rothschild",
-            "Merlot, Cabernet Sauvignon", red, 1978,
+            "Merlot, Cabernet Sauvignon", RED, 1978,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine(
             "Chateau Lafite Rothschild",
-            "Merlot, Cabernet Sauvignon, Petit Verdot", red, 1978,
+            "Merlot, Cabernet Sauvignon, Petit Verdot", RED, 1978,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine(
             "Pessac-Leognan (Premier Grand Cru Classe)",
-            "Merlot", red, 1978,
+            "Merlot", RED, 1978,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine(
             "Chateau Latour",
-            "Cabernet Sauvignon, Merlot", red, 1998,
+            "Cabernet Sauvignon, Merlot", RED, 1998,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine
             ("Chateau Margaux",
-             "Merlot, Cabernet Sauvignon, Cabernet Franc", red, 1998,
+             "Merlot, Cabernet Sauvignon, Cabernet Franc", RED, 1998,
              "Bordeaux", "France",
              Optional.empty()),
         new Wine(
             "Chateau Haut-Brion",
-            "Merlot", red, 1978,
+            "Merlot", RED, 1978,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine(
             "Chateau Pavie",
-            "Merlot", red, 1998,
+            "Merlot", RED, 1998,
             "Bordeaux", "France",
             Optional.empty()),
         new Wine(
             "Chateau Ducru-Beaucaillou Saint-Julien (Grand Cru Classe)",
-            "Merlot, Cabernet Sauvignon", red, 1993,
+            "Merlot, Cabernet Sauvignon", RED, 1993,
             "Bordeaux", "France",
             Optional.empty())};
 

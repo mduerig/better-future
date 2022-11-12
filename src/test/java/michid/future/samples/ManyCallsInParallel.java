@@ -1,9 +1,12 @@
 package michid.future.samples;
 
 import static java.lang.System.out;
+import static michid.future.BetterFuture.foldLeft;
 import static michid.future.BetterFuture.future;
+import static michid.future.samples.api.WineAPi.Review.Stars.ONE;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import michid.future.BetterFuture;
@@ -71,6 +74,25 @@ public class ManyCallsInParallel {
             BetterFuture::collect)
         .onSuccess(
             this::printSomeReviews);
+    }
+
+    /**
+     * Call the wine API asynchronously and in parallel to get a review for each wine and
+     * find the highest rating by number of stars.
+     *
+     * @see BetterFuture#foldLeft(Stream, BetterFuture, BiFunction)
+     */
+    @Test
+    void mostStars() {
+        future(
+            wineApi::getWines)
+        .map(
+            this::getReviews)
+        .andThen(reviews ->
+             foldLeft(reviews, BetterFuture.succeeded(ONE), (rating, review) ->
+                 rating.compareTo(review.rating()) >= 0 ? rating : review.rating()))
+        .onSuccess(
+            out::println);
     }
 
     private void printSomeReviews(BlockingQueue<BetterFuture<Review>> queue) {
