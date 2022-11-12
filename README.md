@@ -59,9 +59,11 @@ Use one of the `BetterFuture#recover...()` methods to recover a failed future in
  - `BetterFuture#recover(T)` is a shortcut for `future.recover(ignore --> t)`.
  - `BetterFuture#recoverWith(Function<Throwable, BetterFuture<T>>)` corresponds to `BetterFuture#andThen(Function<T, BetterFuture<R>>)` for the failure case.
 
-## Combining, Reducing and Collecting
+## Combining, Reducing, Folding and Collecting
 Use `BetterFuture#first(Stream<BetterFuture<T>>)` to find the first completing instance in a stream of `BetterFuture`s.
 
 Use `BetterFuture#collect(Stream<BetterFuture<T>>)` to collect a stream of `BetterFuture`s into a blocking queue, ordered by the order of completion of the individual instances on the stream.
 
 Use `BetterFuture#reduce(Stream<BetterFuture<T>>)` to reduce a stream of `BetterFuture`s into a `BetterFuture<Stream<T>>`. Reduction runs in parallel and returned `BetterFuture` fails immediately once one of the instances in the stream fail and succeeds otherwise.
+
+Use `BetterFuture#foldLeft(Stream<BetterFuture<T>>, BetterFuture<R>, BiFunction<R, T, R>)` to fold a stream of `BetterFuture`s into a single `BetterFuture` by repeatedly applying a `BiFunction` to the individual futures.
