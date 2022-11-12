@@ -36,7 +36,7 @@ Use `BetterFuture#andThen(Function<T, BetterFuture<R>>)` to sequence multiple `B
             .map(rating ->
         newProductReview(product, rating)));
 
-Use `BetterFuture#andAlso(BetterFuture<Function<T, R>>)` when a `BetterFuture` instance does not depend on the result of previous ones. This allows parallel execution of the asynchronous tasks. E.g. to calculate the speed from the result of two futures, one for a speed and the other a duration:
+Use `BetterFuture#andAlso(BetterFuture<Function<T, R>>)` or `BetterFuture#andAlso(BetterFuture<S>, BiFunction<T, S, R>)` when a `BetterFuture` instance does not depend on the result of previous ones. This allows parallel execution of the asynchronous tasks. E.g. to calculate the speed from the result of two futures, one for a speed and the other a duration:
 
     BetterFuture<Integer> duration = BetterFuture.future(
         API::getSpeed)
@@ -44,6 +44,15 @@ Use `BetterFuture#andAlso(BetterFuture<Function<T, R>>)` when a `BetterFuture` i
         API::getDistance)
             .map(distance -> speed ->
         distance / speed));
+
+or with the `andAlso` overload taking a `BiFunction` for combining the individual results:
+
+    BetterFuture<Integer> duration = BetterFuture.future(
+        API::getSpeed)
+            .andAlso(BetterFuture.future(
+        API::getDistance),
+            (distance, speed) ->
+        distance / speed);
 
 Use one of the `BetterFuture#recover...()` methods to recover a failed future into a succeeded one:
  - `recover(Function<Throwable,T>)` corresponds to `BetterFuture#map(Function<T, R>)` for the failure case.

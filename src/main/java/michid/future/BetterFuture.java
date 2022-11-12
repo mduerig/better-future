@@ -2,7 +2,6 @@ package michid.future;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.runAsync;
-import static java.util.stream.Stream.concat;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -13,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -254,9 +254,34 @@ public class BetterFuture<T> {
      * 
      * @param future  a future of a function receiving the result of this instance for its argument
      * @return  new {@code BetterFuture} instance
+     * 
+     * @see #andAlso(BetterFuture, BiFunction)  
      */
     public <R> BetterFuture<R> andAlso(BetterFuture<Function<T, R>> future) {
         return future.andThen(this::map);
+    }
+
+    /**
+     * Use {@code andAlso} to execute asynchronous calls that do not depend on each other's result
+     * in parallel. (See {@link #andThen(Function)} for sequential execution.)
+     * <p>Example:
+     * <pre>
+     * BetterFuture<Integer> duration = BetterFuture.future(
+     *     API::getSpeed)
+     *         .andAlso(BetterFuture.future(
+     *     API::getDistance),
+     *         (distance, speed) ->
+     *     distance / speed);
+     * </pre>
+     *
+     * @param future  future to run in parallel to this future
+     * @param f  binary function for combining the results of the individual futures
+     * @return  new {@code BetterFuture} instance
+     * 
+     * @see #andAlso(BetterFuture) 
+     */
+    public <S, R> BetterFuture<R> andAlso(BetterFuture<S> future, BiFunction<T, S, R> f) {
+        return future.andAlso(map(t -> s -> f.apply(t, s)));
     }
 
     /**
@@ -364,12 +389,8 @@ public class BetterFuture<T> {
             .reduce(
                 BetterFuture.succeeded(Stream.empty()),
                 (future1, future2) ->
-                future1
-                    .andAlso(
-                future2
-                    .map(stream1 -> stream2 ->
-                concat(stream2, stream1)))
-            );
+                    future1.andAlso(
+                    future2, Stream::concat));
     }
 
     /**

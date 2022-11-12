@@ -196,6 +196,19 @@ public class BetterFutureTest {
     }
 
     @Test
+    public void andAlsoWithBiFunction() throws ExecutionException, InterruptedException {
+        CountDownLatch allRunning = new CountDownLatch(2);
+
+        BetterFuture<String> future =
+            BetterFuture.future(() -> waitForLatchAndReturn(allRunning, "a"))
+                .andAlso(
+            BetterFuture.future(() -> waitForLatchAndReturn(allRunning, "b")),
+                (string1, string2) -> string1 + string2);
+
+        assertEquals(Optional.of("ab"), future.get(ofMillis(100)));
+    }
+
+    @Test
     public void andAlsoWithFailure() {
         CountDownLatch allRunning = new CountDownLatch(3);
 
@@ -207,6 +220,19 @@ public class BetterFutureTest {
             BetterFuture.future(() -> waitForLatchAndReturn(allRunning, "c"))
                 .map(string1 -> string2 -> string3 ->
             string3 + string2 + string1)));
+
+        assertThrows(ExecutionException.class, () -> future.get(ofMillis(100)));
+    }
+
+    @Test
+    public void andAlsoWithBiFunctionAndFailure() {
+        CountDownLatch allRunning = new CountDownLatch(2);
+
+        BetterFuture<String> future =
+            BetterFuture.future(() -> waitForLatchAndReturn(allRunning, "a"))
+                .andAlso(
+            BetterFuture.future(() -> waitForLatchAndFail(allRunning, new Exception("fail"))),
+                (string1, string2) -> string2 + string1);
 
         assertThrows(ExecutionException.class, () -> future.get(ofMillis(100)));
     }
