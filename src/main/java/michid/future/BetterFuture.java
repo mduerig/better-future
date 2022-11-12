@@ -16,6 +16,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -392,6 +393,25 @@ public class BetterFuture<T> {
                 (future1, future2) ->
                     future1.andAlso(
                     future2, Stream::concat));
+    }
+
+    /**
+     * Left associative parallel fold of a list of futures into a single future.
+     *
+     * @param futures  a stream of futures
+     * @param init  initial future to start the fold with
+     * @param combine  binary function for combining the values of two futures
+     * @return  a future for the folded value
+     */
+    public static <R, T> BetterFuture<R> foldLeft(Stream<BetterFuture<T>> futures, BetterFuture<R> init, BiFunction<R, T, R> combine) {
+        return futures.collect(
+            Collectors.collectingAndThen(
+                // Force associativity by lifting fold into the monoid of functions
+                Collectors.reducing(
+                    Function.<BetterFuture<R>>identity(),
+                    t -> r -> r.andAlso(t, combine),
+                    Function::andThen),
+                endo -> endo.apply(init)));
     }
 
     /**
