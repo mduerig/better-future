@@ -62,7 +62,7 @@ public class ManyCallsInParallel {
      * @see BetterFuture#collect (Stream)
      */
     @Test
-    void findFirstFuture2() {
+    void findFastestFutures() {
         future(
             wineApi::getWines)
         .map(
