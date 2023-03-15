@@ -10,6 +10,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -90,6 +91,18 @@ public class BetterFuture<T> {
         });
 
         return new BetterFuture<>(delegate);
+    }
+
+    /**
+     * Factory for creating a new instance from a given {@code Future}.
+     * The returned instance completes successfully or with failed
+     * once the passed {@code future} completes.
+     *
+     * @param future  source future
+     * @return  a new instance
+     */
+    public static <T> BetterFuture<T> fromFuture(Future<T> future) {
+        return BetterFuture.future(future::get);
     }
 
     /**
