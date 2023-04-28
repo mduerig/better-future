@@ -9,6 +9,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +36,8 @@ import java.util.stream.Stream;
  * for collecting and reducing multiple instances of {@code BetterFuture}.
  */
 public class BetterFuture<T> {
+    private static final Executor DEFAULT_EXECUTOR = ForkJoinPool.commonPool();
+
     private final CompletableFuture<T> delegate;
 
     /**
@@ -75,11 +79,12 @@ public class BetterFuture<T> {
      * The returned instance either succeeds with the value returned by the callable
      * or fails with the exception thrown by the callable.
      *
+     * @param executor  the executor to use for asynchronous execution
      * @param callable  the callable to run asynchronously
      * @return  a new instance
      */
-    public static <T> BetterFuture<T> future(Callable<T> callable) {
-        CompletableFuture<T> delegate = new CompletableFuture<>();
+    public static <T> BetterFuture<T> future(Executor executor, Callable<T> callable) {
+        CompletableFuture<T> delegate = new CompletableFuture<T>();
 
         runAsync(() -> {
             try {
@@ -87,9 +92,35 @@ public class BetterFuture<T> {
             } catch (Throwable e) {
                 delegate.completeExceptionally(e);
             }
-        });
+        }, executor);
 
         return new BetterFuture<>(delegate);
+    }
+
+    /**
+     * Factory for creating a new instance from a {@code Callable}. The callable
+     * is evaluated asynchronously completing the returned instance when finished.
+     * The returned instance either succeeds with the value returned by the callable
+     * or fails with the exception thrown by the callable.
+     *
+     * @param callable  the callable to run asynchronously
+     * @return  a new instance
+     */
+    public static <T> BetterFuture<T> future(Callable<T> callable) {
+        return future(DEFAULT_EXECUTOR, callable);
+    }
+
+    /**
+     * Factory for creating a new instance from a given {@code Future}.
+     * The returned instance completes successfully or with failed
+     * once the passed {@code future} completes.
+     *
+     * @param executor  the executor to use for asynchronous execution
+     * @param future  source future
+     * @return  a new instance
+     */
+    public static <T> BetterFuture<T> fromFuture(Executor executor, Future<T> future) {
+        return BetterFuture.future(executor, future::get);
     }
 
     /**
