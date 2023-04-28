@@ -16,8 +16,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assertions;
@@ -555,6 +558,26 @@ public class BetterFutureTest {
 
     private List<String> toList(Stream<String> strings) {
         return strings.collect(Collectors.toList());
+    }
+
+    @Test
+    public void manyConcurrentThreads() throws ExecutionException, InterruptedException {
+        var N = 100;
+        ExecutorService executor = Executors.newFixedThreadPool(N);
+        var latch = new CountDownLatch(N);
+        var futures = IntStream.range(0, N)
+            .mapToObj(value ->
+                BetterFuture.future(executor, () -> {
+                    latch.countDown();
+                    latch.await();
+                    return value;
+                }));
+
+        var sum = BetterFuture.reduce(futures)
+            .map(stream -> stream.mapToInt(value -> value)
+            .sum());
+
+        assertEquals(N*(N - 1)/2, sum.get());
     }
 
     private <T> T waitForLatchAndReturn(CountDownLatch latch, T result) throws InterruptedException {
