@@ -2,7 +2,6 @@ package michid.future;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static java.util.concurrent.CompletableFuture.failedFuture;
-import static java.util.concurrent.CompletableFuture.runAsync;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -86,13 +85,13 @@ public class BetterFuture<T> {
     public static <T> BetterFuture<T> future(Executor executor, Callable<T> callable) {
         var delegate = new CompletableFuture<T>();
 
-        runAsync(() -> {
+        executor.execute(() -> {
             try {
                 delegate.complete(callable.call());
             } catch (Throwable e) {
                 delegate.completeExceptionally(e);
             }
-        }, executor);
+        });
 
         return new BetterFuture<>(delegate);
     }
