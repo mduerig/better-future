@@ -557,8 +557,8 @@ public class BetterFutureTest {
 
     @Test
     public void manyConcurrentThreads() throws ExecutionException, InterruptedException {
-        var N = 100;
-        ExecutorService executor = Executors.newFixedThreadPool(N);
+        var N = 5000;
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         var latch = new CountDownLatch(N);
         var futures = IntStream.range(0, N)
             .mapToObj(value ->
